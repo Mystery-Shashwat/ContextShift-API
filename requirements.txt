@@ -5,3 +5,9 @@ pydantic
 pytest
 httpx
 python-dotenv
+pyjwt
+passlib
+bcrypt==3.2.2
+python-multipart
+psycopg2-binary
+streamlit

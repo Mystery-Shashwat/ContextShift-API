@@ -13,6 +13,7 @@ engine = create_engine(
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 def override_get_db():
@@ -40,36 +41,42 @@ async def mock_generate_structured_context(raw_context: str) -> dict:
 def mock_llm(monkeypatch):
     monkeypatch.setattr("app.routes.context.generate_structured_context", mock_generate_structured_context)
 
-def test_save_context():
+@pytest.fixture
+def test_user():
+    response = client.post("/auth/register", json={"username": "testuser", "password": "password123"})
+    if response.status_code == 400:
+        return {"username": "testuser", "password": "password123"}
+    return response.json()
+
+@pytest.fixture
+def auth_headers(test_user):
+    response = client.post("/auth/login", data={"username": "testuser", "password": "password123"})
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+def test_save_context(auth_headers):
     response = client.post("/save", json={
-        "user_id": "user123",
         "raw_context": "I am working on tests"
-    })
+    }, headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "id" in data
     assert data["problem"] == "Mock problem"
     assert data["next_step"] == "Mock step"
     
-def test_resume_context():
-    # First save a context
+def test_resume_context(auth_headers):
     save_resp = client.post("/save", json={
-        "user_id": "user123",
         "raw_context": "I am working on tests"
-    })
+    }, headers=auth_headers)
     context_id = save_resp.json()["id"]
     
-    # Then resume it
-    response = client.get(f"/resume/{context_id}")
+    response = client.get(f"/resume/{context_id}", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["next_step"] == "Mock step"
     assert "summary" in data
     assert data["questions"] == ["Mock question"]
 
-def test_invalid_input():
-    response = client.post("/save", json={
-        "user_id": "user123"
-        # missing raw_context
-    })
+def test_invalid_input(auth_headers):
+    response = client.post("/save", json={}, headers=auth_headers)
     assert response.status_code == 422

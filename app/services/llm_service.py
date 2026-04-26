@@ -16,8 +16,13 @@ async def generate_structured_context(raw_context: str) -> dict:
     }
 
     prompt = (
-        "Convert the following raw context into structured JSON with: "
-        "problem, current_progress, next_step, open_questions, notes. "
+        "Convert the following raw context into a structured JSON object. "
+        "The JSON MUST have exactly these keys with these exact types:\n"
+        "- problem (string)\n"
+        "- current_progress (string)\n"
+        "- next_step (string)\n"
+        "- open_questions (array of strings)\n"
+        "- notes (string)\n\n"
         "Return ONLY valid JSON.\n\n"
         f"Raw Context:\n{raw_context}"
     )

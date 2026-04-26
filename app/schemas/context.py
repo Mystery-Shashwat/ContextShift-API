@@ -2,7 +2,6 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
 class ContextCreateRequest(BaseModel):
-    user_id: str
     raw_context: str
 
 class ContextResponse(BaseModel):
